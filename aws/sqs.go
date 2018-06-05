@@ -127,7 +127,9 @@ func (s *subSQS) consumeLoop(ctx context.Context) {
 			if err != nil {
 				log.Errorf("Failed to receive messages: %+v", err)
 			} else {
-				log.Infof("Received %d messages", len(rec.Messages))
+				if len(rec.Messages) > 0 {
+					log.Infof("Received %d messages", len(rec.Messages))
+				}
 				for _, msg := range rec.Messages {
 					if wrapped, err := s.newCB(msg, s.dch); err == nil {
 						s.ch <- wrapped
