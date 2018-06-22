@@ -8,7 +8,6 @@ import (
 	"github.com/EVODelavega/goq"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -35,26 +34,25 @@ type pubSQS struct {
 	stopCB   context.CancelFunc
 }
 
+// NewPublsiher - publish to queue, create if needed
 func NewPublsiher(conf Config, sess *session.Session) (goq.Publisher, error) {
 	var (
-		err      error
 		queueURL *string
 	)
-	if sess == nil {
-		if sess, err = session.NewSession(); err != nil {
+	awsConf, err := conf.GetAWSConfig()
+	if err != nil {
+		// we can't do anything -> no credential info
+		// we should be able to use a session, though
+		if sess == nil {
 			return nil, err
 		}
+		awsConf = sess.Config
 	}
-	var creds *credentials.Credentials
-	if conf.Credentials != nil {
-		creds = credentials.NewStaticCredentials(conf.Credentials.AccessKey, conf.Credentials.SecretKey, conf.Credentials.Token)
-	} else {
-		creds = credentials.NewEnvCredentials()
+	if sess == nil {
+		sess = session.New(awsConf)
 	}
-	sc := sqs.New(sess, &aws.Config{
-		Credentials: creds,
-		Region:      &conf.Credentials.Region,
-	})
+	// pass in the specific conf to override anything that may or may not have been in session
+	sc := sqs.New(sess, awsConf)
 	if !conf.CreateQueue {
 		if queueURL, err = getQueue(conf, sess, sc); err != nil {
 			return nil, err
@@ -68,10 +66,6 @@ func NewPublsiher(conf Config, sess *session.Session) (goq.Publisher, error) {
 	if queueURL, err = createQueue(sc, conf); err != nil {
 		return nil, err
 	}
-	if err := subscribeQueue(sess, conf.TopicArn, queueURL); err != nil {
-		log.Errorf("Failed to subscribe queue %s to topic: %+v", *queueURL, err)
-		return nil, err
-	}
 	return &pubSQS{
 		conf:     conf,
 		client:   sc,
@@ -79,30 +73,26 @@ func NewPublsiher(conf Config, sess *session.Session) (goq.Publisher, error) {
 	}, nil
 }
 
-func NewConsumer(conf Config, sess *session.Session, newCB MessageWrapper) (goq.Consumer, error) {
-	// create session if none passed
+// NewConsumer - consume from given queue, create if needed and subscribe to topic if desired
+func NewConsumer(conf Config, newCB MessageWrapper, sess *session.Session) (goq.Consumer, error) {
 	var (
-		err      error
 		queueURL *string
 	)
 	if newCB == nil {
 		newCB = NewMessage
 	}
-	if sess == nil {
-		if sess, err = session.NewSession(); err != nil {
+	awsConf, err := conf.GetAWSConfig()
+	if err != nil {
+		if sess == nil {
 			return nil, err
 		}
+		awsConf = sess.Config
 	}
-	var creds *credentials.Credentials
-	if conf.Credentials != nil {
-		creds = credentials.NewStaticCredentials(conf.Credentials.AccessKey, conf.Credentials.SecretKey, conf.Credentials.Token)
-	} else {
-		creds = credentials.NewEnvCredentials()
+	if sess == nil {
+		// create session using config
+		sess = session.New(awsConf)
 	}
-	sc := sqs.New(sess, &aws.Config{
-		Credentials: creds,
-		Region:      &conf.Credentials.Region,
-	})
+	sc := sqs.New(sess, awsConf)
 	if !conf.CreateQueue {
 		if queueURL, err = getQueue(conf, sess, sc); err != nil {
 			return nil, err
@@ -115,6 +105,10 @@ func NewConsumer(conf Config, sess *session.Session, newCB MessageWrapper) (goq.
 		}, nil
 	}
 	if queueURL, err = createQueue(sc, conf); err != nil {
+		return nil, err
+	}
+	if err := subscribeQueue(sess, conf.TopicArn, queueURL); err != nil {
+		log.Errorf("Failed to subscribe queue %s to topic: %+v", *queueURL, err)
 		return nil, err
 	}
 	return &subSQS{

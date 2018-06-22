@@ -6,8 +6,6 @@ import (
 
 	"github.com/EVODelavega/goq"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 )
@@ -24,50 +22,63 @@ func NewSNSPublisher(conf Config, sess *session.Session) (*prodSNS, error) {
 	if conf.TopicArn == nil {
 		return nil, errors.New("topic ARN must be set")
 	}
-	var err error
-	p := prodSNS{
-		conf:  conf,
-		topic: conf.TopicArn,
-	}
-	var creds *credentials.Credentials
-	if conf.Credentials != nil {
-		creds = credentials.NewStaticCredentials(conf.Credentials.AccessKey, conf.Credentials.SecretKey, conf.Credentials.Token)
-	} else {
-		creds = credentials.NewEnvCredentials()
-	}
-	if sess == nil {
-		sess, err = session.NewSession()
-		if err != nil {
+	awsConf, err := conf.GetAWSConfig()
+	if err != nil {
+		if sess == nil {
 			return nil, err
 		}
+		awsConf = sess.Config
 	}
-	p.client = sns.New(
-		sess,
-		&aws.Config{
-			Credentials: creds,
-			Region:      &conf.Credentials.Region,
-		},
-	)
-	return &p, nil
+	// session contains credentials and region
+	if sess != nil {
+		return &prodSNS{
+			conf:  conf,
+			topic: conf.TopicArn,
+			client: sns.New(
+				sess,
+				awsConf,
+			),
+		}, nil
+	}
+	// create new session if needed
+	sess = session.New(awsConf)
+	return &prodSNS{
+		conf:  conf,
+		topic: conf.TopicArn,
+		client: sns.New(
+			sess,
+			awsConf,
+		),
+	}, nil
 }
 
 func (p *prodSNS) Start(ctx context.Context, marshal MessageMarshaller) chan<- goq.BaseMsg {
 	if p.ch != nil {
 		return p.ch
 	}
-	p.ch = make(chan goq.BaseMsg, p.conf.BatchSize)
+	if marshal == nil {
+		marshal = JSONMessage
+	}
+	// buffer to 1, so we're less likely to actually interrupt the routine publishing
+	// while at the same time a shutdown doesn't risk losing a ton of data
+	p.ch = make(chan goq.BaseMsg, 1)
 	ctx, p.stopCB = context.WithCancel(ctx)
 	return p.ch
 }
 
-func (p *prodSNS) publishLoop(ctx context.Context) {
+func (p *prodSNS) publishLoop(ctx context.Context, marshal MessageMarshaller) {
 	for {
 		select {
 		case <-ctx.Done():
 			close(p.ch)
 			return
 		case msg := <-p.ch:
-			body := msg.Body()
+			b, err := marshal(msg)
+			if err != nil {
+				msg.SetError(err)
+				continue
+			}
+			body := string(b)
 			subj := msg.GetSubject()
 			in := sns.PublishInput{
 				TopicArn:          p.topic,
