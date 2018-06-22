@@ -15,4 +15,5 @@ type BaseMsg interface {
 	SetError(err error)
 	SetId(id string)
 	ID() string
+	GetSubject() string
 }

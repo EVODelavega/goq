@@ -9,13 +9,17 @@ import (
 // MessageWrapper - callback to use to wrap SQS messages into custom type
 type MessageWrapper func(*sqs.Message, chan<- *sqs.Message) (goq.BaseMsg, error)
 
+// MessageMarshaller - callback used to marshal messages according to requirements
+type MessageMarshaller func(goq.BaseMsg) ([]byte, error)
+
 // Default AWSMessage type
 type AWSMessage struct {
 	goq.BaseMsg
-	raw *sqs.Message
-	dch chan<- *sqs.Message
-	err error
-	id  string
+	subject string // used for SNS
+	raw     *sqs.Message
+	dch     chan<- *sqs.Message
+	err     error
+	id      string
 }
 
 // NewMessage - New AWS specific implementation of goq.BaseMsg
@@ -24,6 +28,12 @@ func NewMessage(raw *sqs.Message, dch chan<- *sqs.Message) (goq.BaseMsg, error) 
 		raw: raw,
 		dch: dch,
 	}, nil
+}
+
+// JSONMessage - MessageMarshaller used by default -> sends messages as JSON
+func JSONMessage(msg goq.BaseMsg) ([]byte, error) {
+	// this assumes the body returns a string that is already marshalled
+	return []byte(msg.Body()), nil
 }
 
 // Ack - implementation of BaseMsg interface
@@ -73,4 +83,9 @@ func (m *AWSMessage) SetId(id string) {
 
 func (m AWSMessage) ID() string {
 	return m.id
+}
+
+// GetSubject
+func (m AWSMessage) GetSubject() string {
+	return m.subject
 }
