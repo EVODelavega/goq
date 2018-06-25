@@ -11,14 +11,15 @@ import (
 )
 
 type prodSNS struct {
-	conf   Config
-	topic  *string
-	client *sns.SNS
-	stopCB context.CancelFunc
-	ch     chan goq.BaseMsg
+	conf    Config
+	topic   *string
+	client  *sns.SNS
+	marshal MessageMarshaller
+	stopCB  context.CancelFunc
+	ch      chan goq.BaseMsg
 }
 
-func NewSNSPublisher(conf Config, sess *session.Session) (*prodSNS, error) {
+func NewSNSPublisher(conf Config, marshal MessageMarshaller, sess *session.Session) (goq.Publisher, error) {
 	if conf.TopicArn == nil {
 		return nil, errors.New("topic ARN must be set")
 	}
@@ -29,6 +30,9 @@ func NewSNSPublisher(conf Config, sess *session.Session) (*prodSNS, error) {
 		}
 		awsConf = sess.Config
 	}
+	if marshal == nil {
+		marshal = JSONMessage
+	}
 	// session contains credentials and region
 	if sess != nil {
 		return &prodSNS{
@@ -38,6 +42,7 @@ func NewSNSPublisher(conf Config, sess *session.Session) (*prodSNS, error) {
 				sess,
 				awsConf,
 			),
+			marshal: marshal,
 		}, nil
 	}
 	// create new session if needed
@@ -49,31 +54,31 @@ func NewSNSPublisher(conf Config, sess *session.Session) (*prodSNS, error) {
 			sess,
 			awsConf,
 		),
+		marshal: marshal,
 	}, nil
 }
 
-func (p *prodSNS) Start(ctx context.Context, marshal MessageMarshaller) chan<- goq.BaseMsg {
+// Start - start publisher, returns channel used to publish
+func (p *prodSNS) Start(ctx context.Context) chan<- goq.BaseMsg {
 	if p.ch != nil {
 		return p.ch
 	}
-	if marshal == nil {
-		marshal = JSONMessage
-	}
 	// buffer to 1, so we're less likely to actually interrupt the routine publishing
 	// while at the same time a shutdown doesn't risk losing a ton of data
+	// what we could do have multiple publishLoop routines running, but that's a bit iffy
 	p.ch = make(chan goq.BaseMsg, 1)
 	ctx, p.stopCB = context.WithCancel(ctx)
 	return p.ch
 }
 
-func (p *prodSNS) publishLoop(ctx context.Context, marshal MessageMarshaller) {
+func (p *prodSNS) publishLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			close(p.ch)
 			return
 		case msg := <-p.ch:
-			b, err := marshal(msg)
+			b, err := p.marshal(msg)
 			if err != nil {
 				msg.SetError(err)
 				continue
