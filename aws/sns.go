@@ -68,6 +68,7 @@ func (p *prodSNS) Start(ctx context.Context) chan<- goq.BaseMsg {
 	// what we could do have multiple publishLoop routines running, but that's a bit iffy
 	p.ch = make(chan goq.BaseMsg, 1)
 	ctx, p.stopCB = context.WithCancel(ctx)
+	go p.publishLoop(ctx)
 	return p.ch
 }
 
