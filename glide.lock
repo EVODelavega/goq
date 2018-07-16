@@ -1,8 +1,8 @@
-hash: be7981b85be35cb2f6a74f583ac2d4f175126d6ad4e4fe75730f77774bed353c
-updated: 2018-05-01T12:48:19.065653026+01:00
+hash: 29b53de96442d5c328a155b00ca3640d25097250364f38c277e338a48bbaa1df
+updated: 2018-07-16T10:44:38.143497312+01:00
 imports:
 - name: github.com/aws/aws-sdk-go
-  version: 236a3fce423171d03ae327a8aa2512e6fb24df36
+  version: 94b80148ea4b1b136682116294b151766a3b85c2
   subpackages:
   - '...'
   - aws
@@ -15,6 +15,7 @@ imports:
   - aws/credentials/ec2rolecreds
   - aws/credentials/endpointcreds
   - aws/credentials/stscreds
+  - aws/csm
   - aws/defaults
   - aws/ec2metadata
   - aws/endpoints
@@ -23,27 +24,43 @@ imports:
   - aws/signer/v4
   - internal/sdkio
   - internal/sdkrand
+  - internal/sdkuri
   - internal/shareddefaults
   - private/protocol
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
   - private/protocol/xml/xmlutil
+  - service/sns
   - service/sqs
   - service/sts
+- name: github.com/caarlos0/env
+  version: bc122c26dc2d72f6904a9e0cb940ca508660067c
 - name: github.com/go-ini/ini
-  version: bda519ae5f4cbc60d391ff8610711627a08b86ae
+  version: 358ee7663966325963d4e8b2e1fbd570c5195153
 - name: github.com/jmespath/go-jmespath
   version: c2b33e8439af944379acbdd9c3a5fe0bc44bd8a5
 - name: github.com/sirupsen/logrus
   version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
+- name: github.com/stretchr/testify
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
+  subpackages:
+  - assert
 - name: golang.org/x/crypto
-  version: d6449816ce06963d9d136eee5a56fca5b0616e7e
+  version: a49355c7e3f8fe157a85be2f77e6e269a0f89602
   subpackages:
   - ssh/terminal
 - name: golang.org/x/sys
-  version: 3ccc7e5779793fd54564baf60c51bf017955e0ba
+  version: ac767d655b305d4e9612f5f6e33120b9176c4ad4
   subpackages:
   - unix
   - windows
-testImports: []
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib

@@ -13,20 +13,20 @@ var (
 )
 
 type Credentials struct {
-	AccessKey string
-	SecretKey string
-	Token     string
-	Region    string
+	AccessKey string `env:"AWS_ACCESS_KEY"`
+	SecretKey string `env:"AWS_SECRET_KEY"`
+	Token     string `env:"AWS_TOKEN"`
+	Region    string `env:"AWS_REGION"`
 }
 
 type Config struct {
-	AccountID       string
-	CreateQueue     bool
-	BatchSize       int64
-	WaitTimeSeconds int64
-	QueueName       string
-	QueueUrl        *string
-	TopicArn        *string
+	AccountID       string  `env:"AWS_ACCOUNT_ID"`
+	CreateQueue     bool    `env:"AWS_CREATE_QUEUE"`
+	BatchSize       int64   `env:"AWS_BATCH_SIZE"`
+	WaitTimeSeconds int64   `env:"AWS_WAIT_TIME_SECONDS"`
+	QueueName       string  `env:"AWS_QUEUE_NAME"`
+	QueueUrl        *string `env:"AWS_QUEUE_URL"`
+	TopicArn        *string `env:"AWS_TOPIC_ARN"`
 	Credentials     *Credentials
 }
 
