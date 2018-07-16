@@ -1,8 +1,9 @@
 package env
 
 import (
+	"github.com/EVODelavega/goq/aws"
+
 	"github.com/caarlos0/env"
-	"github.com/w32blaster/goq/aws"
 )
 
 // Get parses the variable environment and creates the config object
