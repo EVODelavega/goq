@@ -3,7 +3,7 @@ package env
 import (
 	"reflect"
 
-	"github.com/w32blaster/goq/aws"
+	"github.com/EVODelavega/goq/aws"
 
 	"github.com/caarlos0/env"
 )
