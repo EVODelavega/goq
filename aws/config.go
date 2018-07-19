@@ -20,13 +20,13 @@ type Credentials struct {
 }
 
 type Config struct {
-	AccountID       string `env:"AWS_ACCOUNT_ID"`
-	CreateQueue     bool   `env:"AWS_CREATE_QUEUE"`
-	BatchSize       int64  `env:"AWS_BATCH_SIZE"`
-	WaitTimeSeconds int64  `env:"AWS_WAIT_TIME_SECONDS"`
-	QueueName       string `env:"AWS_QUEUE_NAME"`
-	QueueUrl        *string
-	TopicArn        *string
+	AccountID       string  `env:"AWS_ACCOUNT_ID"`
+	CreateQueue     bool    `env:"AWS_CREATE_QUEUE"`
+	BatchSize       int64   `env:"AWS_BATCH_SIZE"`
+	WaitTimeSeconds int64   `env:"AWS_WAIT_TIME_SECONDS"`
+	QueueName       string  `env:"AWS_QUEUE_NAME"`
+	QueueUrl        *string `env:"AWS_QUEUE_URL"`
+	TopicArn        *string `env:"AWS_TOPIC_ARN"`
 	Credentials     *Credentials
 }
 
