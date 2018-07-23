@@ -1,9 +1,7 @@
-package env
+package aws
 
 import (
 	"reflect"
-
-	"github.com/EVODelavega/goq/aws"
 
 	"github.com/caarlos0/env"
 )
@@ -11,14 +9,14 @@ import (
 var ptrToStringType = reflect.PtrTo(reflect.TypeOf(""))
 
 // Get parses the variable environment and creates the config object
-func Get() (*aws.Config, error) {
+func Get() (*Config, error) {
 
-	credentials := &aws.Credentials{}
+	credentials := &Credentials{}
 	if err := env.Parse(credentials); err != nil {
 		return nil, err
 	}
 
-	config := &aws.Config{}
+	config := &Config{}
 
 	// custom parser for the pointers of string
 	customParsers := env.CustomParsers{
