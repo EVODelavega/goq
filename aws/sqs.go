@@ -284,7 +284,7 @@ func (p *pubSQS) sendMessage(ctx context.Context, msg goq.BaseMsg, delay *int64)
 		MessageBody:       &body,
 		MessageAttributes: msgAttr,
 	}
-	if out, err := p.client.SendMessageWithContext(ctx, &in, nil); err != nil {
+	if out, err := p.client.SendMessageWithContext(ctx, &in); err != nil {
 		msg.SetError(err)
 	} else {
 		msg.SetId(*out.MessageId)
