@@ -19,6 +19,7 @@ type subSQS struct {
 	conf     Config
 	client   *sqs.SQS
 	queueURL *string
+	queueArn *string
 	ch       chan goq.BaseMsg
 	dch      chan *sqs.Message
 	newCB    MessageWrapper
@@ -66,10 +67,15 @@ func NewPublsiher(conf Config, sess *session.Session) (goq.Publisher, error) {
 	if queueURL, err = createQueue(sc, conf); err != nil {
 		return nil, err
 	}
+	arn, err := getQueueArn(sc, queueURL)
+	if err != nil {
+		return nil, err
+	}
 	return &pubSQS{
 		conf:     conf,
 		client:   sc,
 		queueURL: queueURL,
+		queueArn: arn,
 	}, nil
 }
 
@@ -107,7 +113,11 @@ func NewConsumer(conf Config, newCB MessageWrapper, sess *session.Session) (goq.
 	if queueURL, err = createQueue(sc, conf); err != nil {
 		return nil, err
 	}
-	if err := subscribeQueue(sess, conf.TopicArn, queueURL); err != nil {
+	arn, err := getQueueArn(sc, queueURL)
+	if err != nil {
+		return nil, err
+	}
+	if err := subscribeQueue(sess, conf.TopicArn, arn); err != nil {
 		log.Errorf("Failed to subscribe queue %s to topic: %+v", *queueURL, err)
 		return nil, err
 	}
@@ -115,6 +125,7 @@ func NewConsumer(conf Config, newCB MessageWrapper, sess *session.Session) (goq.
 		conf:     conf,
 		client:   sc,
 		queueURL: queueURL,
+		queueArn: arn,
 	}, nil
 }
 
@@ -132,7 +143,8 @@ func getQueue(conf Config, sess *session.Session, sc *sqs.SQS) (*string, error) 
 	if conf.TopicArn == nil {
 		return out.QueueUrl, nil
 	}
-	if err := subscribeQueue(sess, conf.TopicArn, out.QueueUrl); err != nil {
+	arn, err := getQueueArn(sc, out.QueueUrl)
+	if err := subscribeQueue(sess, conf.TopicArn, arn); err != nil {
 		log.Errorf("Failed to subscribe queue %s to topic: %+v", *out.QueueUrl, err)
 		return nil, err
 	}
@@ -349,16 +361,35 @@ func createQueue(sc *sqs.SQS, conf Config) (*string, error) {
 	return out.QueueUrl, nil
 }
 
-func subscribeQueue(sess *session.Session, topicArn, queueURL *string) error {
+func getQueueArn(sc *sqs.SQS, queueURL *string) (*string, error) {
+	out, err := sc.GetQueueAttributes(
+		&sqs.GetQueueAttributesInput{
+			QueueUrl: queueURL,
+			Attributes: []*string{
+				aws.String("QueueArn"),
+			},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	arn, ok := out.Attributes["QueueArn"]
+	if !ok {
+		return nil, fmt.Errorf("Could not find queue ARN for queueURL: %s", *queueURL)
+	}
+	return arn
+}
+
+func subscribeQueue(sess *session.Session, topicArn, queueArn *string) error {
 	topic := sns.New(sess)
 	out, err := topic.Subscribe(&sns.SubscribeInput{
 		TopicArn: topicArn,
 		Protocol: aws.String("sqs"),
-		Endpoint: queueURL,
+		Endpoint: queueArn,
 	})
 	if err != nil {
 		return err
 	}
-	log.Infof("Succesfully subscribed queue %s to topic %s -> subscription Arn: %s", *queueURL, *topicArn, *out.SubscriptionArn)
+	log.Infof("Succesfully subscribed queue %s to topic %s -> subscription Arn: %s", *queueArn, *topicArn, *out.SubscriptionArn)
 	return nil
 }
