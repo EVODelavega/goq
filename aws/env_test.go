@@ -22,7 +22,7 @@ func TestNestedVariablesAreSet(t *testing.T) {
 	defer os.Clearenv()
 
 	// When:
-	config, err := Get()
+	config, err := GetConfig()
 
 	// Then:
 	assert.Nil(t, err)
@@ -53,7 +53,7 @@ func TestOptionalVariablesAreSet(t *testing.T) {
 	defer os.Clearenv()
 
 	// When:
-	config, err := Get()
+	config, err := GetConfig()
 
 	// Then:
 	assert.Nil(t, err)

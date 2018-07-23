@@ -8,8 +8,8 @@ import (
 
 var ptrToStringType = reflect.PtrTo(reflect.TypeOf(""))
 
-// Get parses the variable environment and creates the config object
-func Get() (*Config, error) {
+// GetConfig parses the variable environment and creates the config object
+func GetConfig() (*Config, error) {
 
 	credentials := &Credentials{}
 	if err := env.Parse(credentials); err != nil {
