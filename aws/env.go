@@ -20,7 +20,7 @@ func GetConfig() (*Config, error) {
 
 	// custom parser for the pointers of string
 	customParsers := env.CustomParsers{
-		ptrToStringType: fnGetStringPointer,
+		ptrToStringType: getStringPointer,
 	}
 
 	if err := env.ParseWithFuncs(config, customParsers); err != nil {
@@ -34,7 +34,7 @@ func GetConfig() (*Config, error) {
 
 // Optional properties are presented as pointers allowing to have nil's when value were not provided.
 // This simple function returns pointer only in case when string value is not empty
-func fnGetStringPointer(v string) (interface{}, error) {
+func getStringPointer(v string) (interface{}, error) {
 	if len(v) > 0 {
 		return &v, nil
 	}
