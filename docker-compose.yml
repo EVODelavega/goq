@@ -1,0 +1,23 @@
+
+version: '2.1'
+
+services:
+  goq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4567-4583:4567-4583"
+      - "${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}"
+    environment:
+      - SERVICES=sqs,sns
+      - PORT_WEB_UI=8080
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LOCALSTACK_HOSTNAME=localstack
+      - DEFAULT_REGION:"eu-west-1"
+    volumes:
+      - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"

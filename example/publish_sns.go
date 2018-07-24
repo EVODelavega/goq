@@ -3,6 +3,7 @@ package example
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -52,17 +53,26 @@ func GetPublisher() (goq.Publisher, error) {
 	)
 }
 
-func startPublisher(p goq.Publisher) {
-	ctx, cfunc := context.WithTimeout(context.Background(), time.Minute)
-	defer cfunc()
+func StartPublisher(ctx context.Context, p goq.Publisher) {
 	ch := p.Start(ctx)
+	count := 1
+	attr := map[string]goq.MessageAttribute{
+		"message_cnt": goq.MessageAttribute{
+			Type:  "string",
+			Value: "",
+		},
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
+			a := attr["message_cnt"]
+			a.Value = fmt.Sprintf("%d", count)
+			attr["message_cnt"] = a
+			count++
 			msg := myPublishMsg{
-				AWSPublishMessage: aws.NewPublishMessage("body", "subject", nil),
+				AWSPublishMessage: aws.NewPublishMessage("body", "subject", attr),
 			}
 			// send message
 			ch <- msg
