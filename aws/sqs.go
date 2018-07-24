@@ -31,7 +31,8 @@ type pubSQS struct {
 	conf     Config
 	client   *sqs.SQS
 	queueURL *string
-	ch       chan goq.BaseMsg
+	queueArn *string
+	ch       chan goq.PublishMsg
 	stopCB   context.CancelFunc
 }
 
@@ -220,8 +221,8 @@ func (s *subSQS) delLoop(ctx context.Context) {
 }
 
 // Start - implement publisher interface
-func (s *pubSQS) Start(ctx context.Context) chan<- goq.BaseMsg {
-	s.ch = make(chan goq.BaseMsg, s.conf.BatchSize)
+func (s *pubSQS) Start(ctx context.Context) chan<- goq.PublishMsg {
+	s.ch = make(chan goq.PublishMsg, s.conf.BatchSize)
 	ctx, s.stopCB = context.WithCancel(ctx)
 	// @TODO start publishing loop
 	go s.publishLoop(ctx)
@@ -239,9 +240,9 @@ func (s *pubSQS) Stop() error {
 
 func (s *pubSQS) publishLoop(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(s.conf.WaitTimeSeconds) * time.Second)
-	var buf []goq.BaseMsg
+	var buf []goq.PublishMsg
 	if s.conf.BatchSize > 0 {
-		buf = make([]goq.BaseMsg, 0, s.conf.BatchSize)
+		buf = make([]goq.PublishMsg, 0, s.conf.BatchSize)
 	}
 	delay := aws.Int64(s.conf.WaitTimeSeconds)
 	for {
@@ -278,7 +279,7 @@ func (s *pubSQS) publishLoop(ctx context.Context) {
 	}
 }
 
-func (p *pubSQS) sendMessage(ctx context.Context, msg goq.BaseMsg, delay *int64) {
+func (p *pubSQS) sendMessage(ctx context.Context, msg goq.PublishMsg, delay *int64) {
 	body := msg.Body()
 	attr := msg.Attributes()
 	msgAttr := map[string]*sqs.MessageAttributeValue{}
@@ -303,7 +304,7 @@ func (p *pubSQS) sendMessage(ctx context.Context, msg goq.BaseMsg, delay *int64)
 	}
 }
 
-func (p *pubSQS) sendBatch(ctx context.Context, buffer []goq.BaseMsg, delay *int64) {
+func (p *pubSQS) sendBatch(ctx context.Context, buffer []goq.PublishMsg, delay *int64) {
 	in := sqs.SendMessageBatchInput{
 		Entries:  make([]*sqs.SendMessageBatchRequestEntry, 0, len(buffer)),
 		QueueUrl: p.queueURL,
@@ -365,7 +366,7 @@ func getQueueArn(sc *sqs.SQS, queueURL *string) (*string, error) {
 	out, err := sc.GetQueueAttributes(
 		&sqs.GetQueueAttributesInput{
 			QueueUrl: queueURL,
-			Attributes: []*string{
+			AttributeNames: []*string{
 				aws.String("QueueArn"),
 			},
 		},
@@ -377,7 +378,7 @@ func getQueueArn(sc *sqs.SQS, queueURL *string) (*string, error) {
 	if !ok {
 		return nil, fmt.Errorf("Could not find queue ARN for queueURL: %s", *queueURL)
 	}
-	return arn
+	return arn, nil
 }
 
 func subscribeQueue(sess *session.Session, topicArn, queueArn *string) error {

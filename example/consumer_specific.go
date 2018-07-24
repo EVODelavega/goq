@@ -72,7 +72,7 @@ func (m MyMessage) GetTimeSent() time.Time {
 func useConsumer() {
 	conf := aws.Config{}
 	// pass NewMyMessage here, this consumer is now tied to the type of message we're consuming
-	consumer, _ := aws.New(conf, nil, NewMyMessage)
+	consumer, _ := aws.NewConsumer(conf, NewMyMessage, nil)
 
 	ctx, cfunc := context.WithTimeout(context.Background(), time.Minute)
 	defer cfunc()

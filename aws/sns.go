@@ -16,7 +16,7 @@ type prodSNS struct {
 	client  *sns.SNS
 	marshal MessageMarshaller
 	stopCB  context.CancelFunc
-	ch      chan goq.BaseMsg
+	ch      chan goq.PublishMsg
 }
 
 func NewSNSPublisher(conf Config, marshal MessageMarshaller, sess *session.Session) (goq.Publisher, error) {
@@ -59,14 +59,14 @@ func NewSNSPublisher(conf Config, marshal MessageMarshaller, sess *session.Sessi
 }
 
 // Start - start publisher, returns channel used to publish
-func (p *prodSNS) Start(ctx context.Context) chan<- goq.BaseMsg {
+func (p *prodSNS) Start(ctx context.Context) chan<- goq.PublishMsg {
 	if p.ch != nil {
 		return p.ch
 	}
 	// buffer to 1, so we're less likely to actually interrupt the routine publishing
 	// while at the same time a shutdown doesn't risk losing a ton of data
 	// what we could do have multiple publishLoop routines running, but that's a bit iffy
-	p.ch = make(chan goq.BaseMsg, 1)
+	p.ch = make(chan goq.PublishMsg, 1)
 	ctx, p.stopCB = context.WithCancel(ctx)
 	go p.publishLoop(ctx)
 	return p.ch
@@ -112,7 +112,7 @@ func (p *prodSNS) Stop() error {
 	return nil
 }
 
-func getSNSMessageAttributes(msg goq.BaseMsg) (r map[string]*sns.MessageAttributeValue) {
+func getSNSMessageAttributes(msg goq.PublishMsg) (r map[string]*sns.MessageAttributeValue) {
 	attr := msg.Attributes()
 	if len(attr) == 0 {
 		return

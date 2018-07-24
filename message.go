@@ -15,5 +15,16 @@ type BaseMsg interface {
 	SetError(err error)
 	SetId(id string)
 	ID() string
+}
+
+// PublishMsg - Message type used for publishing
+type PublishMsg interface {
+	Error() error
+	Attributes() map[string]MessageAttribute
+	AddAttribute(name string, attr MessageAttribute)
+	Body() string
+	SetError(err error)
+	SetId(id string)
+	ID() string
 	GetSubject() string
 }

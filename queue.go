@@ -17,6 +17,6 @@ type Consumer interface {
 
 // Publisher - directly push messages onto SQS queue
 type Publisher interface {
-	Start(ctx context.Context) chan<- BaseMsg
+	Start(ctx context.Context) chan<- PublishMsg
 	Stop() error
 }
