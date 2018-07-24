@@ -6,6 +6,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    links:
+      - "localstack:localstack"
+    depends_on:
+      - localstack
 
   localstack:
     image: localstack/localstack

@@ -46,6 +46,9 @@ func GetPublisher() (goq.Publisher, error) {
 	} else {
 		sess = session.New(awsConf)
 	}
+	endpoint := "http://localstack:4575"
+	// localstack endpoint
+	sess.Config.Endpoint = &endpoint
 	return aws.NewSNSPublisher(
 		*conf,
 		myPublishMsgMarshaller,
@@ -63,19 +66,18 @@ func StartPublisher(ctx context.Context, p goq.Publisher) {
 		},
 	}
 	for {
+		a := attr["message_cnt"]
+		a.Value = fmt.Sprintf("%d", count)
+		attr["message_cnt"] = a
+		count++
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			a := attr["message_cnt"]
-			a.Value = fmt.Sprintf("%d", count)
-			attr["message_cnt"] = a
-			count++
-			msg := myPublishMsg{
+			// send message
+			ch <- myPublishMsg{
 				AWSPublishMessage: aws.NewPublishMessage("body", "subject", attr),
 			}
-			// send message
-			ch <- msg
 		}
 	}
 }
