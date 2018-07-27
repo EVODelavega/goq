@@ -46,8 +46,8 @@ func TestNestedVariablesAreSet(t *testing.T) {
 func TestOptionalVariablesAreSet(t *testing.T) {
 
 	// Given:
-	os.Setenv("AWS_QUEUE_URL", "http://test.queue")
-	os.Setenv("AWS_TOPIC_ARN", "test-arn")
+	os.Setenv(envVarAWSQueueURL, "http://test.queue")
+	os.Setenv(envVarAWSTopicARN, "test-arn")
 
 	// and:
 	defer os.Clearenv()

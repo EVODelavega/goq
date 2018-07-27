@@ -1,12 +1,15 @@
 package aws
 
 import (
-	"reflect"
+	"os"
 
 	"github.com/caarlos0/env"
 )
 
-var ptrToStringType = reflect.PtrTo(reflect.TypeOf(""))
+const (
+	envVarAWSQueueURL = "AWS_QUEUE_URL"
+	envVarAWSTopicARN = "AWS_TOPIC_ARN"
+)
 
 // GetConfig parses the variable environment and creates the config object
 func GetConfig() (*Config, error) {
@@ -18,25 +21,20 @@ func GetConfig() (*Config, error) {
 
 	config := &Config{}
 
-	// custom parser for the pointers of string
-	customParsers := env.CustomParsers{
-		ptrToStringType: getStringPointer,
+	if err := env.Parse(config); err != nil {
+		return nil, err
 	}
 
-	if err := env.ParseWithFuncs(config, customParsers); err != nil {
-		return nil, err
+	// explicitly assign optional values, presented as pointers and can be nullable
+	if val, found := os.LookupEnv(envVarAWSQueueURL); found {
+		config.QueueUrl = &val
+	}
+
+	if val, found := os.LookupEnv(envVarAWSTopicARN); found {
+		config.TopicArn = &val
 	}
 
 	config.Credentials = credentials
 
 	return config, nil
-}
-
-// Optional properties are presented as pointers allowing to have nil's when value were not provided.
-// This simple function returns pointer only in case when string value is not empty
-func getStringPointer(v string) (interface{}, error) {
-	if len(v) > 0 {
-		return &v, nil
-	}
-	return nil, nil
 }
