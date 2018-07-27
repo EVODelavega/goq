@@ -334,7 +334,7 @@ func (p *pubSQS) sendBatch(ctx context.Context, buffer []goq.PublishMsg, delay *
 			},
 		)
 	}
-	out, err := p.client.SendMessageBatchWithContext(ctx, &in, nil)
+	out, err := p.client.SendMessageBatchWithContext(ctx, &in)
 	if err != nil {
 		for _, msg := range buffer {
 			msg.SetError(err)
